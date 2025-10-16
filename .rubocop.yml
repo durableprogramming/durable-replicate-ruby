@@ -1,6 +1,11 @@
-AllCops:
-  TargetRubyVersion: 3.1
+require:
+  - rubocop-performance
 
+AllCops:
+  TargetRubyVersion: 2.6
+  NewCops: enable
+
+# Style
 Style/StringLiterals:
   Enabled: true
   EnforcedStyle: double_quotes
@@ -9,5 +14,79 @@ Style/StringLiteralsInInterpolation:
   Enabled: true
   EnforcedStyle: double_quotes
 
+Style/Documentation:
+  Enabled: true
+  Exclude:
+    - "test/**/*"
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+# Layout
 Layout/LineLength:
   Max: 120
+  Exclude:
+    - "test/**/*"
+
+Layout/EmptyLinesAroundClassBody:
+  Enabled: true
+
+Layout/EmptyLinesAroundModuleBody:
+  Enabled: true
+
+# Metrics
+Metrics/MethodLength:
+  Max: 20
+  Exclude:
+    - "test/**/*"
+
+Metrics/ClassLength:
+  Max: 150
+  Exclude:
+    - "test/**/*"
+
+Metrics/BlockLength:
+  Max: 25
+  Exclude:
+    - "test/**/*"
+
+Metrics/AbcSize:
+  Max: 17
+  Exclude:
+    - "test/**/*"
+
+# Naming
+Naming/FileName:
+  Enabled: true
+  Exclude:
+    - "lib/replicate.rb"
+
+Naming/MethodName:
+  Enabled: true
+
+Naming/VariableName:
+  Enabled: true
+
+# Security
+Security/Eval:
+  Enabled: true
+
+Security/Open:
+  Enabled: true
+
+# Bundler
+Bundler/DuplicatedGem:
+  Enabled: true
+
+Bundler/GemComment:
+  Enabled: false
+
+# Performance
+Performance/RegexpMatch:
+  Enabled: true
+
+Performance/RedundantMatch:
+  Enabled: true
+
+# Rails cops disabled since this isn't a Rails app

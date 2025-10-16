@@ -1,4 +1,189 @@
+# Type definitions for the Replicate Ruby client
+# Comprehensive RBS definitions for type safety and documentation
+
 module Replicate
   VERSION: String
-  # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+
+  # Error classes
+  class Error < StandardError
+  end
+
+  class ConfigurationError < Error
+  end
+
+  class APIError < Error
+    attr_reader status_code: Integer?
+    attr_reader response_body: String?
+
+    def initialize: (String message, ?Integer? status_code, ?String? response_body) -> void
+  end
+
+  class AuthenticationError < APIError
+  end
+
+  class NotFoundError < APIError
+  end
+
+  class ModelError < Error
+  end
+
+  class ValidationError < Error
+  end
+
+  class TimeoutError < Error
+  end
+
+  class ConnectionError < Error
+  end
+
+  # Configuration module
+  module Configurable
+    attr_accessor api_token: String?
+    attr_accessor webhook_url: String?
+    attr_writer api_endpoint_url: String
+    attr_writer dreambooth_endpoint_url: String
+
+    def configure: { (Configurable) -> void } -> void
+    def api_token: -> String?
+    def api_token=: (String token) -> String
+    def webhook_url: -> String?
+    def webhook_url=: (String? url) -> String?
+    def api_endpoint_url: -> String
+    def dreambooth_endpoint_url: -> String
+  end
+
+  # Main client class
+  class Client
+    include Configurable
+
+    def initialize: (?Hash[Symbol, untyped] options) -> void
+    def api_endpoint: -> Endpoint
+    def dreambooth_endpoint: -> Endpoint
+
+    # Model operations
+    def retrieve_model: (String model, ?version: (String | Symbol)) -> (Record::Model | Array[Record::ModelVersion] | Record::ModelVersion)
+    def retrieve_collection: (String slug) -> Hash[String, untyped]
+
+    # Prediction operations
+    def create_prediction: (String | Hash[Symbol, untyped] version, ?Hash[Symbol, untyped] input, ?webhook: String?, **untyped) -> Record::Prediction
+    def retrieve_prediction: (String id) -> Record::Prediction
+    def list_predictions: -> Array[Record::Prediction]
+    def cancel_prediction: (String id) -> Record::Prediction
+
+    # Training operations
+    def create_training: (Hash[Symbol, untyped] input, model: String) -> Record::Training
+    def retrieve_training: (String id) -> Record::Training
+
+    # Upload operations
+    def upload_zip: (String path) -> Record::Upload
+  end
+
+  # Endpoint class for HTTP operations
+  class Endpoint
+    def initialize: (endpoint_url: String, api_token: String) -> void
+    def get: (String path, ?Hash[String, untyped] params) -> Hash[String, untyped]
+    def post: (String path, ?Hash[String, untyped] data) -> Hash[String, untyped]
+    def put: (String path, ?Hash[String, untyped] data) -> Hash[String, untyped]
+    def delete: (String path) -> Hash[String, untyped]
+  end
+
+  # Record classes
+  module Record
+    class Base
+      attr_accessor data: Hash[String, untyped]
+      attr_reader client: Client
+
+      def initialize: (Client client, Hash[String, untyped] params) -> void
+      def method_missing: (Symbol method_name, *untyped args) { (*untyped) -> untyped } -> untyped
+      def respond_to_missing?: (Symbol method_name, ?bool include_private) -> bool
+      def inspect: -> String
+      def to_s: -> String
+      def ==: (untyped other) -> bool
+      def hash: -> Integer
+      def ===: (untyped other) -> bool
+    end
+
+    class Model < Base
+      def latest_version: -> ModelVersion
+      def versions: -> Array[ModelVersion]
+    end
+
+    class ModelVersion < Base
+      def predict: (Hash[Symbol, untyped] input, ?webhook: String?) -> Prediction
+    end
+
+    class Prediction < Base
+      include Mixins::Refreshable
+      include Mixins::Statusable
+
+      def refetch: -> Prediction
+      def cancel: -> Prediction
+      def starting?: -> bool
+      def processing?: -> bool
+      def output: -> untyped
+      def <=>: (Prediction other) -> Integer?
+      def <: (Prediction other) -> bool
+      def >: (Prediction other) -> bool
+      def ==: (untyped other) -> bool
+    end
+
+    class Training < Base
+      include Mixins::Refreshable
+      include Mixins::Statusable
+
+      def refetch: -> Training
+    end
+
+    class Upload < Base
+      def serving_url: -> String
+    end
+
+    # Mixins
+    module Mixins
+      module Refreshable
+        def refetch: -> untyped
+        def stale?: -> bool
+        def refetch_if_stale: -> untyped
+      end
+
+      module Statusable
+        def finished?: -> bool
+        def running?: -> bool
+        def succeeded?: -> bool
+        def failed?: -> bool
+        def canceled?: -> bool
+        def status_description: -> String
+      end
+    end
+  end
+
+  # Client mixins
+  module ClientMixins
+    module Model
+      def retrieve_model: (String model, ?version: (String | Symbol)) -> (Record::Model | Array[Record::ModelVersion] | Record::ModelVersion)
+      def retrieve_collection: (String slug) -> Hash[String, untyped]
+    end
+
+    module Prediction
+      def create_prediction: ((String | Hash[Symbol, untyped]) version, ?Hash[Symbol, untyped] input, ?webhook: String?, **untyped) -> Record::Prediction
+      def retrieve_prediction: (String id) -> Record::Prediction
+      def list_predictions: -> Array[Record::Prediction]
+      def cancel_prediction: (String id) -> Record::Prediction
+    end
+
+    module Training
+      def create_training: (Hash[Symbol, untyped] input, model: String) -> Record::Training
+      def retrieve_training: (String id) -> Record::Training
+    end
+
+    module Upload
+      def upload_zip: (String path) -> Record::Upload
+    end
+  end
+
+  # Module-level methods
+  def client: -> Client
+  def_delegators: (Client, :retrieve_model, :create_prediction, :retrieve_prediction, :list_predictions, :upload_zip, :create_training, :retrieve_training) -> void
+  def predict: (String version, ?Hash[Symbol, untyped] input, ?webhook: String?) -> Record::Prediction
+  def model: (String identifier, ?version: Symbol) -> (Record::Model | Array[Record::ModelVersion] | Record::ModelVersion)
 end

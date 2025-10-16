@@ -1,38 +1,21 @@
 # frozen_string_literal: true
 
 module Replicate
-  class Client
-    # Methods for the Prediction API
+  module ClientMixins
+    # Methods for interacting with Replicate predictions
     module Prediction
-      # Get a prediction
-      # @see https://replicate.com/docs/reference/http#get-prediction
-      def retrieve_prediction(id)
-        response = api_endpoint.get("predictions/#{id}")
-        Replicate::Record::Prediction.new(self, response)
-      end
-
-      # Get a list of predictions
-      # @see https://replicate.com/docs/reference/http#get-predictions
-      def list_predictions(cursor = nil)
-        response = api_endpoint.get("predictions", cursor: cursor)
-        response["results"].map! { |result| Replicate::Record::Prediction.new(self, result) }
-        response
-      end
-
-      # Create a prediction
-      # @see https://replicate.com/docs/reference/http#create-prediction
-      def create_prediction(params)
-        params[:webhook] ||= webhook_url
-        response = api_endpoint.post("predictions", params)
-        Replicate::Record::Prediction.new(self, response)
-      end
-
-      # Cancel a prediction
-      # @see https://replicate.com/docs/reference/http#cancel-prediction
-      def cancel_prediction(id)
-        response = api_endpoint.post("predictions/#{id}/cancel")
-        Replicate::Record::Prediction.new(self, response)
-      end
+      require_relative "prediction/retrieve_prediction"
+      require_relative "prediction/list_predictions"
+      require_relative "prediction/create_prediction"
+      require_relative "prediction/cancel_prediction"
+      require_relative "prediction/validate_prediction_id"
+      require_relative "prediction/validate_version_param"
+      require_relative "prediction/validate_input_param"
+      require_relative "prediction/validate_webhook_param"
+      require_relative "prediction/validate_prediction_params"
+      require_relative "prediction/normalize_and_coerce_input"
+      require_relative "prediction/coerce_input_value"
+      require_relative "prediction/valid_url"
     end
   end
 end
